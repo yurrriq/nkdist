@@ -7,4 +7,5 @@ erl_crash.dump
 ebin
 data
 log
-.rebar
+.rebar3
+_*

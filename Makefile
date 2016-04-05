@@ -1,80 +1,27 @@
-REPO ?= nkdist
+# REPO ?= nkdist
 
-.PHONY: deps release
+.PHONY: release dev
 
-all: deps compile
+all: compile
 
-compile:
-	./rebar compile
+compile: ; @rebar3 compile
 
-cnodeps:
-	./rebar compile skip_deps=true
+clean: ; @rebar3 clean
 
-deps:
-	./rebar get-deps
-	find deps -name "rebar.config" | xargs perl -pi -e 's/lager, "2.0.3"/lager, ".*"/g'
-	(cd deps/lager && git checkout 2.1.1)
+distclean: ; @rebar3 clean -a
 
-clean: 
-	./rebar clean
+tests: eunit
 
-distclean: clean
-	./rebar delete-deps
+# eunit: export ERL_FLAGS = -config test/app.config -args_file test/vm.args
+eunit: ; @rebar3 eunit
 
-tests: compile eunit
+# shell:
+#	erl -config util/shell_app.config -args_file util/shell_vm.args -s nkdist_app
 
-eunit:
-	export ERL_FLAGS="-config test/app.config -args_file test/vm.args"; \
-	./rebar eunit skip_deps=true
+docs: ; @rebar3 edoc
 
-shell:
-	erl -config util/shell_app.config -args_file util/shell_vm.args -s nkdist_app
+dev%: export NAME                 = $@@127.0.0.1
+dev%: export RELX_REPLACE_OS_VARS = true
+dev%: ; @rebar3 as $@ run
 
-
-docs:
-	./rebar skip_deps=true doc
-
-
-dev1:
-	erl -config util/dev1.config -args_file util/dev_vm.args \
-		-name dev1@127.0.0.1 -s nkdist_app
-
-dev2:
-	erl -config util/dev2.config -args_file util/dev_vm.args \
-	    -name dev2@127.0.0.1 -s nkdist_app
-
-dev3:
-	erl -config util/dev3.config -args_file util/dev_vm.args \
-	    -name dev3@127.0.0.1 -s nkdist_app
-
-dev4:
-	erl -config util/dev4.config -args_file util/dev_vm.args \
-	    -name dev4@127.0.0.1 -s nkdist_app
-
-dev5:
-	erl -config util/dev5.config -args_file util/dev_vm.args \
-	    -name dev5@127.0.0.1 -s nkdist_app
-
-
-APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
-	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
-COMBO_PLT = $(HOME)/.$(REPO)_combo_dialyzer_plt
-
-check_plt: 
-	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) deps/*/ebin
-
-build_plt: 
-	dialyzer --build_plt --output_plt $(COMBO_PLT) --apps $(APPS) deps/*/ebin
-
-dialyzer:
-	dialyzer -Wno_return --plt $(COMBO_PLT) ebin/nkdist*.beam #| \
-	    # fgrep -v -f ./dialyzer.ignore-warnings
-
-cleanplt:
-	@echo 
-	@echo "Are you sure?  It takes about 1/2 hour to re-build."
-	@echo Deleting $(COMBO_PLT) in 5 seconds.
-	@echo 
-	sleep 5
-	rm $(COMBO_PLT)
-
+dialyzer: ; @rebar3 dialyzer
